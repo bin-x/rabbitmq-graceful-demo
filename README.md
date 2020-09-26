@@ -9,6 +9,9 @@ download the code.
 $ cd rabbitmq-graceful-demo
 $ go get github.com/streadway/amqp
 ```
+open `consumer.go` and `producer.go`, change the rabbitmq's address to yours:
+
+`err := mq.Connect("amqp://user:password@ip:port/yourhost")`
 
 start consumer.go
 ```
