@@ -38,11 +38,11 @@ func (srv *server) SetGraceful(duration time.Duration) {
 func (srv *server) Run(deliveries <-chan amqp.Delivery) {
 	go func() {
 		for d := range deliveries {
-			// if close, will not process new message
+			go srv.startHandler(d)
+			// after close, will not process new message
 			if srv.close {
 				break
 			}
-			go srv.startHandler(d)
 		}
 	}()
 
