@@ -48,6 +48,8 @@ func (srv *server) Run(deliveries <-chan amqp.Delivery) {
 
 	if srv.graceful {
 		srv.gracefulShutdown()
+		//Process the rest message after it received shutdown signal
+		s.wg.Wait()
 	} else {
 		forever := make(chan bool)
 		<-forever
