@@ -13,6 +13,7 @@ import (
 
 type server struct {
 	wg              *sync.WaitGroup
+	concurrency     uint8
 	wait            chan bool
 	handler         func(delivery amqp.Delivery)
 	close           bool
@@ -22,11 +23,12 @@ type server struct {
 
 func NewServer(handler func(delivery amqp.Delivery)) *server {
 	return &server{
-		wg:       &sync.WaitGroup{},
-		wait:     make(chan bool, 1),
-		handler:  handler,
-		close:    false,
-		graceful: false,
+		wg:          &sync.WaitGroup{},
+		concurrency: 1,
+		wait:        make(chan bool, 1),
+		handler:     handler,
+		close:       false,
+		graceful:    false,
 	}
 }
 
@@ -35,10 +37,19 @@ func (srv *server) SetGraceful(duration time.Duration) {
 	srv.gracefulTimeout = duration
 }
 
+func (srv *server) SetConcurrency(num uint8) {
+	if num <= 1 {
+		return
+	}
+	srv.concurrency = num
+}
+
 func (srv *server) Run(deliveries <-chan amqp.Delivery) {
+	concurrencyCh := make(chan bool, srv.concurrency)
 	go func() {
 		for d := range deliveries {
-			go srv.startHandler(d)
+			concurrencyCh <- true
+			go srv.startHandler(d, concurrencyCh)
 			// after close, will not process new message
 			if srv.close {
 				break
@@ -69,10 +80,11 @@ func (srv *server) shutdown(ctx context.Context) error {
 	}
 }
 
-func (srv *server) startHandler(delivery amqp.Delivery) {
+func (srv *server) startHandler(delivery amqp.Delivery, concurrencyCh chan bool) {
 	srv.wg.Add(1)
 	defer srv.wg.Done()
 	srv.handler(delivery)
+	<-concurrencyCh
 }
 
 func (srv *server) gracefulShutdown() {
