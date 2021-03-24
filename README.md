@@ -44,3 +44,14 @@ switch to the consumer and pressed `control + c`, you will see like this:
 I pressed `control + c` at the third second, and then the program continued to execute. After the entire task was executed, the entire program was actually closed.
 
 
+## New features
+Set the number of concurrent
+
+```
+server := lib.NewServer(work)
+server.SetGraceful(time.Second * 20)
+// you can Set the number of concurrent by call this function.
+server.SetConcurrency(3)
+server.Run(consume)
+```
+
